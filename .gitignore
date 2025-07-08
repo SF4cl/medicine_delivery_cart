@@ -1,0 +1,9 @@
+.idea
+.cache
+build
+cmake-build*
+
+Drivers
+cmake
+
+data.txt
