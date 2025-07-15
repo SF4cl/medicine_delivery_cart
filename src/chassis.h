@@ -7,17 +7,27 @@
 extern "C" {
 #endif
 
-  typedef enum {
-    FORWARD = 0,
-    BACKWARD = 1,
-    LEFT = 2,
-    RIGHT = 3,
-    TURN = 4,
-    STOP = 5,
-  } Direction_t;
+typedef enum {
+  MOVE = 0,
+  LEFT = 1,
+  RIGHT = 2,
+  TURN = 3,
+  STOP = 4,
+} Direction_t;
 
-  void ChassisInit();
-  void ChassisMove(Direction_t direction);
+typedef enum {
+  WAIT = 0,
+  FORWARD = 1,
+  BACKWARD = 2,
+} Medicine_t;
+
+extern Direction_t chassis_state;
+extern float turn_pid_output;
+extern uint16_t slow_down_count;
+extern uint16_t turn_count;
+
+void ChassisInit();
+void ChassisUpdate();
 
 #ifdef __cplusplus
 }

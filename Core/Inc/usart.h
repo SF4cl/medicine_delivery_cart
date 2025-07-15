@@ -36,6 +36,8 @@ extern "C" {
 
 extern UART_HandleTypeDef huart1;
 
+extern UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN Private defines */
 
 #define		CMD_LEN		255
@@ -44,9 +46,12 @@ extern __IO bool rxFrameFlag;
 extern __IO uint8_t rxCmd[CMD_LEN];
 extern __IO uint8_t rxCount;
 
+extern __IO uint8_t comm_data[128];
+
 /* USER CODE END Private defines */
 
 void MX_USART1_UART_Init(void);
+void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 

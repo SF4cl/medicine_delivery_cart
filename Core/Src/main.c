@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "Emm_V5.h"
+#include "chassis.h"
 
 /* USER CODE END Includes */
 
@@ -48,8 +49,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-int test_flag = 0;
-int count = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,7 +60,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void ChassisMove(Direction_t direction);
 /* USER CODE END 0 */
 
 /**
@@ -94,11 +94,17 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  ChassisInit();
 
   __HAL_UART_CLEAR_IDLEFLAG(&huart1);
   __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
   HAL_UART_Receive_DMA(&huart1, (uint8_t *)rxCmd, CMD_LEN);
+
+  __HAL_UART_CLEAR_IDLEFLAG(&huart2);
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+  HAL_UART_Receive_DMA(&huart2, (uint8_t *)comm_data, sizeof(comm_data));
 
   HAL_Delay(2000);
 
@@ -109,29 +115,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-    if (count == 150) {
-      test_flag = 1;
-    }
-
-    if (test_flag == 0) {
-      Emm_V5_Vel_Control(2, 0, 1000, 10, 1);
-      HAL_Delay(10);
-
-      Emm_V5_Vel_Control(1, 0, 1000, 10, 1);
-      HAL_Delay(10);
-      count++;
-    } else {
-      Emm_V5_Vel_Control(2, 0, 0, 10, 1);
-      HAL_Delay(10);
-
-      Emm_V5_Vel_Control(1, 0, 0, 10, 1);
-      HAL_Delay(10);
-    }
-
-    Emm_V5_Synchronous_motion(0);
-    HAL_Delay(10);
 
     /* USER CODE BEGIN 3 */
+    ChassisUpdate();
+    // ChassisMove(chassis_state);
+    ChassisMove(MOVE);
+
   }
   /* USER CODE END 3 */
 }
@@ -200,7 +189,75 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void ChassisMove(const Direction_t direction) {
+  switch (direction) {
+  case MOVE:
+    // Emm_V5_Vel_Control(2, 1, 20 + turn_pid_output, 10, true);
+    // HAL_Delay(10);
+    //
+    // Emm_V5_Vel_Control(1, 1, 20 - turn_pid_output, 10, true);
+    // HAL_Delay(10);
 
+    Emm_V5_Vel_Control(2, 0, 0, 10, true);
+    HAL_Delay(10);
+
+    Emm_V5_Vel_Control(1, 0, 0, 10, true);
+    HAL_Delay(10);
+
+    break;
+  case LEFT:
+    if (slow_down_count > 0) {
+      Emm_V5_Vel_Control(2, 0, 0, 10, true);
+      HAL_Delay(10);
+
+      Emm_V5_Vel_Control(1, 0, 0, 10, true);
+      HAL_Delay(10);
+
+      slow_down_count--;
+    }
+
+    if (turn_count > 0 && slow_down_count == 0) {
+      Emm_V5_Vel_Control(2, 1, 1000, 10, true);
+      HAL_Delay(10);
+
+      Emm_V5_Vel_Control(1, 0, 1000, 10, true);
+      HAL_Delay(10);
+
+      turn_count--;
+    }
+
+
+    break;
+  case RIGHT:
+    Emm_V5_Vel_Control(2, 0, 1000, 10, true);
+    HAL_Delay(10);
+
+    Emm_V5_Vel_Control(1, 1, 1000, 10, true);
+    HAL_Delay(10);
+
+    break;
+  case TURN:
+    Emm_V5_Vel_Control(2, 0, 2000, 10, true);
+    HAL_Delay(10);
+
+    Emm_V5_Vel_Control(1, 1, 2000, 10, true);
+    HAL_Delay(10);
+
+    break;
+  case STOP:
+  default:
+    Emm_V5_Vel_Control(2, 0, 0, 0, true);
+    HAL_Delay(10);
+
+    Emm_V5_Vel_Control(1, 0, 0, 0, true);
+    HAL_Delay(10);
+
+    break;
+  }
+  // 两电机同步运动
+  Emm_V5_Synchronous_motion(0);
+  HAL_Delay(10);
+}
 /* USER CODE END 4 */
 
 /**
