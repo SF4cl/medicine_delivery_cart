@@ -31,7 +31,9 @@ Medicine_t medicine_state = WAIT;
 uint8_t target_number = 0; // 目标数字
 
 uint16_t slow_down_count = slow_down_count_param; // 减速计数
-uint16_t turn_count = turn_count_param; // 转向计数
+uint16_t turn_count = turn_count_param;           // 转向计数
+
+uint8_t medicine_count = 0;
 
 // pid输出
 float turn_pid_output = 0.f;
@@ -41,9 +43,16 @@ float speed_pid_output = 0.f;
 int16_t deviation_debug = 0.f;
 uint8_t crossing_debug = 0.f;
 uint8_t stop_sign_debug = 0.f;
-uint8_t test_debug0 = 0;
-uint8_t test_debug1 = 0;
-uint8_t test_debug2 = 0;
+int16_t numbers_counts_debug = 0;
+// 数字
+uint8_t number_0_debug = 0;
+uint8_t number_0_x_pos_debug = 0;
+uint8_t number_1_debug = 0;
+uint8_t number_1_x_pos_debug = 0;
+uint8_t number_2_debug = 0;
+uint8_t number_2_x_pos_debug = 0;
+uint8_t number_3_debug = 0;
+uint8_t number_3_x_pos_debug = 0;
 
 static void CommUnpack() {
   for (const auto &data : comm_data) {
@@ -53,16 +62,31 @@ static void CommUnpack() {
   std::memcpy(&protocol, referee_data_buffer->data().custom_robot_data.data,
               sizeof(Protocol));
 
-  test_debug0 = comm_data[0];
-  test_debug1 = comm_data[1];
-  test_debug2 = comm_data[2];
-
   deviation_debug = protocol.deviation;
   crossing_debug = protocol.crossing;
   stop_sign_debug = protocol.stop_sign;
+  numbers_counts_debug = protocol.numbers;
+  number_0_debug = protocol.bboxs[0].number;
+  number_0_x_pos_debug = protocol.bboxs[0].x_pos;
+  number_1_debug = protocol.bboxs[1].number;
+  number_1_x_pos_debug = protocol.bboxs[1].x_pos;
+  number_2_debug = protocol.bboxs[2].number;
+  number_2_x_pos_debug = protocol.bboxs[2].x_pos;
+  number_3_debug = protocol.bboxs[3].number;
+  number_3_x_pos_debug = protocol.bboxs[3].x_pos;
 }
 
-static void BeginDetection() {}
+static void BeginDetection() {
+  if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_12) == GPIO_PIN_RESET) {
+    if (medicine_count == 0) {
+      medicine_state = FORWARD;
+    } else {
+      medicine_state = BACKWARD;
+    }
+  } else if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_12) == GPIO_PIN_SET) {
+    medicine_state = WAIT;
+  }
+}
 
 static void ChassisTask() {
   switch (medicine_state) {
@@ -95,7 +119,8 @@ static void ChassisTask() {
       while (action_stack.top() != MOVE) {
         action_stack.push(MOVE);
       }
-    } else if (protocol.crossing == false && (turn_count == turn_count_param || turn_count == 0)) {
+    } else if (protocol.crossing == false &&
+               (turn_count == turn_count_param || turn_count == 0)) {
       // 没有识别到十字路口就执行前进
       chassis_state = MOVE;
       while (action_stack.top() != MOVE) {
